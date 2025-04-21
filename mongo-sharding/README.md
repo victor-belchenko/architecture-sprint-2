@@ -19,30 +19,27 @@ docker exec -it configSrv mongosh --port 27017
 );
 > exit();
 
-docker exec -it shard1-1 mongosh --port 27018
+docker exec -it shard1 mongosh --port 27018
 
 > rs.initiate(
     {
       _id : "shard1",
       members: [
-        { _id: 0, host: "173.17.0.9:27018" }, 
-        { _id: 1, host: "173.17.0.29:27018" },  
-        { _id: 2, host: "173.17.0.39:27018" }
+        { _id : 0, host : "shard1:27018" },
+       // { _id : 1, host : "shard2:27019" }
       ]
     }
 );
 > exit();
 
-
-docker exec -it shard2-1 mongosh --port 27019
+docker exec -it shard2 mongosh --port 27019
 
 > rs.initiate(
     {
       _id : "shard2",
       members: [
-       { _id: 0, host: "173.17.0.8:27019" }, 
-        { _id: 1, host: "173.17.0.28:27019" },  
-        { _id: 2, host: "173.17.0.38:27019" }
+       // { _id : 0, host : "shard1:27018" },
+        { _id : 1, host : "shard2:27019" }
       ]
     }
   );
@@ -52,9 +49,8 @@ docker exec -it shard2-1 mongosh --port 27019
 
 docker exec -it mongos_router mongosh --port 27020
 
-> sh.addShard("shard1/173.17.0.9:27018,173.17.0.29:27018,173.17.0.39:27018"); 
-
-> sh.addShard("shard2/173.17.0.8:27019,173.17.0.28:27019,173.17.0.38:27019"); 
+> sh.addShard( "shard1/shard1:27018");
+> sh.addShard( "shard2/shard2:27019");
 
 > sh.enableSharding("somedb");
 > sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } )
@@ -70,23 +66,12 @@ docker exec -it mongos_router mongosh --port 27020
 http://localhost:8080/
 {"mongo_topology_type":"Single","mongo_replicaset_name":null,"mongo_db":"somedb","read_preference":"Primary()","mongo_nodes":[["mongodb1",27017]],"mongo_primary_host":null,"mongo_secondary_hosts":[],"mongo_address":["mongodb1",27017],"mongo_is_primary":true,"mongo_is_mongos":false,"collections":{"helloDoc":{"documents_count":1000}},"shards":null,"cache_enabled":false,"status":"OK"}
 6. Проверить количество документов на шардах
- docker exec -it shard1-1 mongosh --port 27018
+ docker exec -it shard1 mongosh --port 27018
  > use somedb;
  > db.helloDoc.countDocuments();
  > exit(); 
 
- docker exec -it shard2-1 mongosh --port 27019
+ docker exec -it shard2 mongosh --port 27019
  > use somedb;
  > db.helloDoc.countDocuments();
  > exit();
-7. Инициировать redis
-docker exec -it redis redis-cli -h 173.17.0.2 -p 6379
-8. Запуск приложения на компьютере
-uvicorn api_app.app:app --reload
-Докер-образ приложения использовать не удалось по следующей причине   Docker пытается запустить образ, собранный для архитектуры linux/amd64 (обычные процессоры Intel/AMD), на моём MacBook Air с процессором Apple Silicon (ARM64, например M1/M2).
-9. Очистить кэш
-docker exec -it redis redis-cli FLUSHALL
-проверить результат
-docker exec -it redis redis-cli KEYS '*'
-проверить время выполнения запроса
-time curl -o /dev/null -s -w "%{time_total}\n" http://localhost:8080/helloDoc/users

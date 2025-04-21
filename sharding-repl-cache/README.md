@@ -83,7 +83,6 @@ http://localhost:8080/
 docker exec -it redis redis-cli -h 173.17.0.2 -p 6379
 8. Запуск приложения на компьютере
 uvicorn api_app.app:app --reload
-Докер-образ приложения использовать не удалось по следующей причине   Docker пытается запустить образ, собранный для архитектуры linux/amd64 (обычные процессоры Intel/AMD), на моём MacBook Air с процессором Apple Silicon (ARM64, например M1/M2).
 9. Очистить кэш
 docker exec -it redis redis-cli FLUSHALL
 проверить результат
